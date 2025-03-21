@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "openai": "^4.89.0"
+  },
+  "name": "aibot",
+  "version": "1.0.0",
+  "main": "script.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": ""
+}
