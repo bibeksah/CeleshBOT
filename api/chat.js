@@ -1,5 +1,5 @@
 // Import required dependencies
-const { AzureOpenAI } = require('openai');
+const { OpenAI } = require('openai');
 
 // Basic error handling for environment variables
 const checkEnvVars = () => {
@@ -37,8 +37,8 @@ module.exports = async (req, res) => {
     // Check environment variables
     const { azureOpenAIKey, azureOpenAIEndpoint } = checkEnvVars();
     
-    // Create client
-    const client = new AzureOpenAI({
+    // Create client using AzureOpenAI constructor
+    const client = new OpenAI.AzureOpenAI({
       apiKey: azureOpenAIKey,
       endpoint: azureOpenAIEndpoint,
       apiVersion: "2024-05-01-preview",
@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
     
     // Create thread
     const thread = await client.beta.threads.create({});
-    
+
     // Add message to thread
     await client.beta.threads.messages.create(thread.id, {
       role: "user",
