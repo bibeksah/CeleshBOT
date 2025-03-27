@@ -1,10 +1,26 @@
 {
     "version": 2,
     "functions": {
-      "api/chat.js": {
+      "api/answer.js": {
         "memory": 1024,
         "maxDuration": 60
-      }
+      },
+      "api/chatconcludor.js": {
+        "memory": 1024,
+        "maxDuration": 60
+      },
+      "api/promptenhanser.js": {
+        "memory": 1024,
+        "maxDuration": 60
+      },
+      "api/chunkprocessor.js": {
+        "memory": 1024,
+        "maxDuration": 60
+      },
+      "api/test.js": {
+        "memory": 1024,
+        "maxDuration": 60
+      }     
     },
     "routes": [
       {
@@ -12,16 +28,20 @@
         "dest": "/api/answer.js"
       },
       {
-        "src": "/conclusion",
+        "src": "/concludor",
         "dest": "/api/chatconcludor.js"
       },
       {
-        "src": "/enhance",
-        "dest": "/api/chatenhancer.js"
+        "src": "/enhanser",
+        "dest": "/api/promptenhanser.js"
       },
       {
         "src": "/chunkprocessor",
         "dest": "/api/chunkprocessor.js"
+      },
+      {
+        "src": "/test",
+        "dest": "/api/promptenhanser.js"
       }
     ]
   }
