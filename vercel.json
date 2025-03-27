@@ -8,8 +8,20 @@
     },
     "routes": [
       {
-        "src": "/chat",
-        "dest": "/api/chat.js"
+        "src": "/answer",
+        "dest": "/api/answer.js"
+      },
+      {
+        "src": "/conclusion",
+        "dest": "/api/chatconcludor.js"
+      },
+      {
+        "src": "/enhance",
+        "dest": "/api/chatenhancer.js"
+      },
+      {
+        "src": "/chunkprocessor",
+        "dest": "/api/chunkprocessor.js"
       }
     ]
   }
