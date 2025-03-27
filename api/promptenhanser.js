@@ -55,9 +55,7 @@ module.exports = async (req, res) => {
     const assistant = await client.beta.assistants.create({
       model: "gpt-4o-mini",
       name: "Celesh",
-      instructions: "You are Celesh, Nexalaris Tech's AI customer service assistant...",
-      tools: [{ "type": "file_search" }],
-      tool_resources: { "file_search": { "vector_store_ids": ["vs_BX5jd6fRpNWCPmZolnNJYY7s"] } }
+      instructions: "The message follows a specific format, where [ChatStyle] and [User_Prompt] represent different chat styles. Your task is to refine and enhance the user’s prompt while aligning it seamlessly with the specified chat style. Ensure that the improved prompt maintains clarity, effectiveness, and engagement while adapting to the nuances of the chosen style.",
     });
     
     // Create thread
