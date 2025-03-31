@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
   // Handle GET requests with a friendly message
   if (req.method === 'GET') {
     return res.status(200).json({
-      message: "Chat API is running. Please use POST method with a JSON body containing a 'transcript' field."
+      message: "API is running. Please use POST method with a JSON body containing your data."
     });
   }
 
@@ -45,35 +45,66 @@ module.exports = async (req, res) => {
       defaultHeaders: { "api-key": azureOpenAIKey }
     });
 
-    // Get transcript from request body
-    const { transcript } = req.body;
-    if (!transcript || !Array.isArray(transcript)) {
-      return res.status(400).json({ error: "Transcript must be an array of messages" });
+    // Get data from request body
+    const inputData = req.body;
+    
+    if (!inputData) {
+      return res.status(400).json({ error: "Request body cannot be empty" });
     }
 
-    // Construct the conversation history
-    const formattedTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join("\n");
-
-    // Create assistant
+    // Create assistant with structured output instructions
     const assistant = await client.beta.assistants.create({
       model: "gpt-4o-mini",
       name: "Celesh",
-      instructions: "You will analyze the entire conversation transcript provided and generate a summary in three sections:\n\n1. **Chat Conclusion** – A brief summary of key points discussed.\n2. **User Behavior Analysis** – Identify patterns in user interactions, including tone, preferences, and recurring themes.\n3. **Chat Style** – Describe the user's communication style, including their tone (formal/casual), message length, and stylistic tendencies."
+      instructions: `You will analyze the conversation data provided and generate a structured response with exactly three sections:
+
+1. Chat_conclusion: A brief summary of key points discussed and outcomes.
+2. User_behavior_analysis: Identify patterns in user interactions, including tone, preferences, and recurring themes.
+3. Chat_style: Describe the user's communication style, including their tone (formal/casual), message length, and stylistic tendencies.
+
+Your response MUST be formatted as a JSON object with these three fields, each containing string content. DO NOT include any other fields or introductory text.
+
+Example format:
+{
+  "chat_conclusion": "...",
+  "user_behavior_analysis": "...",
+  "chat_style": "..."
+}`
     });
 
     // Create thread
     const thread = await client.beta.threads.create({});
 
-    // Add transcript to thread
+    // Format the data based on its type and structure
+    let formattedData;
+    
+    if (inputData.transcript && Array.isArray(inputData.transcript)) {
+      // Handle transcript format from original code
+      formattedData = inputData.transcript.map(entry => `${entry.role}: ${entry.text}`).join("\n");
+    } else if (typeof inputData === 'object') {
+      // Handle generic object data
+      formattedData = JSON.stringify(inputData, null, 2);
+    } else if (Array.isArray(inputData)) {
+      // Handle array data
+      formattedData = JSON.stringify(inputData, null, 2);
+    } else {
+      // Handle primitive types or anything else as string
+      formattedData = String(inputData);
+    }
+
+    // Add data to thread
     await client.beta.threads.messages.create(thread.id, {
       role: "user",
-      content: formattedTranscript
+      content: formattedData
     });
 
-    // Run assistant
+    // Run assistant with structured output instructions
     const run = await client.beta.threads.runs.create(
       thread.id,
-      { assistant_id: assistant.id }
+      { 
+        assistant_id: assistant.id,
+        additional_instructions: `Return your analysis in a structured JSON format with exactly these three fields: "chat_conclusion", "user_behavior_analysis", and "chat_style". Make sure to properly format as valid JSON.`
+      }
     );
 
     // Poll for completion (with timeout safeguard)
@@ -112,8 +143,47 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: "No text content found" });
     }
 
-    // Return response
-    return res.status(200).json({ summary: textContent.text.value });
+    // Parse the JSON response
+    let parsedResponse;
+    try {
+      // Try to parse the response as JSON
+      parsedResponse = JSON.parse(textContent.text.value);
+      
+      // Check if all required fields are present
+      if (!parsedResponse.chat_conclusion || !parsedResponse.user_behavior_analysis || !parsedResponse.chat_style) {
+        // If any fields are missing, create them with default values
+        parsedResponse = {
+          chat_conclusion: parsedResponse.chat_conclusion || "No conclusion provided",
+          user_behavior_analysis: parsedResponse.user_behavior_analysis || "No user behavior analysis provided",
+          chat_style: parsedResponse.chat_style || "No chat style analysis provided"
+        };
+      }
+    } catch (e) {
+      // If parsing fails, extract sections manually using regex
+      const content = textContent.text.value;
+      
+      // Extract sections using regex
+      const chatConclusionMatch = content.match(/chat_conclusion[:\s]+(.*?)(?=user_behavior_analysis|\n\n|$)/is);
+      const userBehaviorMatch = content.match(/user_behavior_analysis[:\s]+(.*?)(?=chat_style|\n\n|$)/is);
+      const chatStyleMatch = content.match(/chat_style[:\s]+(.*?)(?=\n\n|$)/is);
+      
+      parsedResponse = {
+        chat_conclusion: chatConclusionMatch ? chatConclusionMatch[1].trim() : "No conclusion provided",
+        user_behavior_analysis: userBehaviorMatch ? userBehaviorMatch[1].trim() : "No user behavior analysis provided",
+        chat_style: chatStyleMatch ? chatStyleMatch[1].trim() : "No chat style analysis provided"
+      };
+    }
+
+    // Return structured response
+    return res.status(200).json({
+      chat_conclusion: parsedResponse.chat_conclusion,
+      user_behavior_analysis: parsedResponse.user_behavior_analysis,
+      chat_style: parsedResponse.chat_style,
+      metadata: {
+        thread_id: thread.id,
+        run_id: run.id
+      }
+    });
 
   } catch (error) {
     console.error("Error:", error);
@@ -124,20 +194,3 @@ module.exports = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
